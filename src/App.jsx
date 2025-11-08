@@ -5,12 +5,17 @@ import SuggestionPanel from "./components/SuggestionPanel";
 import CreateEventModal from "./components/CreateEventModal";
 import PeoplePanel from "./components/PeoplePanel";
 import ApprovalNotice from "./components/ApprovalNotice";
+import ProfilePanel from "./components/ProfilePanel";
+import DiscoverPanel from "./components/DiscoverPanel";
+import PublicProfile from "./components/PublicProfile";
 
 function mockUser() {
   return {
     name: "Alex Kim",
     avatar:
       "https://images.unsplash.com/photo-1544006659-f0b21884ce1d?q=80&w=200&auto=format&fit=crop",
+    bio: "Product design, coffee, pickup soccer.",
+    preference: "Evenings",
   };
 }
 
@@ -36,13 +41,13 @@ function generateMockData(weekStart, participants = ["Alex", "Taylor"]) {
 
   const suggested = days.map((d, i) => {
     const arr = [];
-    if (i % 2 === 0) arr.push(block(d, 10, 30, 11, 30, "Study Session 📚", "📚", participants))
-    if (i % 3 === 0) arr.push(block(d, 18, 0, 19, 0, "Scrim ⚽️", "⚽️", participants))
-    if (i % 4 === 0) arr.push(block(d, 20, 0, 21, 0, "Hangout 🍜", "🍜", participants))
+    if (i % 2 === 0) arr.push(block(d, 10, 30, 11, 30, "Study Session \uD83D\uDCDA", "\uD83D\uDCDA", participants))
+    if (i % 3 === 0) arr.push(block(d, 18, 0, 19, 0, "Scrim \u26BD\uFE0F", "\u26BD\uFE0F", participants))
+    if (i % 4 === 0) arr.push(block(d, 20, 0, 21, 0, "Hangout \uD83C\uDF5C", "\uD83C\uDF5C", participants))
     return arr;
   });
 
-  const confirmed = days.map((d, i) => (i === 1 ? [block(d, 17, 0, 18, 0, "Confirmed Meeting ✅", "✅", participants)] : []));
+  const confirmed = days.map((d, i) => (i === 1 ? [block(d, 17, 0, 18, 0, "Confirmed Meeting \u2705", "\u2705", participants)] : []));
 
   return { busy, suggested, confirmed };
 }
@@ -59,8 +64,9 @@ function App() {
   const [user, setUser] = useState(null);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(null);
-  const [friends] = useState(mockFriends());
+  const [friends, setFriends] = useState(mockFriends());
   const [participants, setParticipants] = useState(["Alex", "Taylor"]);
+  const [viewProfile, setViewProfile] = useState(null); // another user's public profile
 
   const weekStart = useMemo(() => {
     const now = new Date();
@@ -87,11 +93,39 @@ function App() {
   };
 
   const handleAddFriend = () => {
-    alert("Friend discovery coming soon — search by email/handle or import contacts.");
+    alert("Friend discovery is now available below — search and add people or invite via link.");
   };
 
   const handleSelectParticipants = (names) => {
     setParticipants(["Alex", ...names.filter((n) => n !== "Alex")]);
+  };
+
+  const handleSaveProfile = (updated) => {
+    setUser((prev) => ({ ...(prev || {}), ...updated }));
+  };
+
+  const handleInviteFromDiscover = (personOrLink) => {
+    if (typeof personOrLink === "string") {
+      navigator.clipboard?.writeText("https://linkup.app/invite/abc123");
+      alert("Invite link copied to clipboard");
+      return;
+    }
+    setFriends((prev) => {
+      if (prev.some((f) => f.name === personOrLink.name)) return prev;
+      return [
+        ...prev,
+        { id: String(prev.length + 1), name: personOrLink.name, status: personOrLink.status, avatar: personOrLink.avatar },
+      ];
+    });
+  };
+
+  const openPublicProfile = (name) => {
+    const f = friends.find((x) => x.name === name) || {
+      name,
+      avatar: "https://images.unsplash.com/photo-1502685104226-ee32379fefbe?q=80&w=200&auto=format&fit=crop",
+      bio: "Public profile",
+    };
+    setViewProfile({ ...f, bio: f.status || "Enjoys meetups", preference: "Evenings" });
   };
 
   return (
@@ -118,22 +152,27 @@ function App() {
         </section>
 
         <aside className="lg:col-span-1 space-y-4">
+          <ProfilePanel user={user} onSave={handleSaveProfile} />
+
           <PeoplePanel
             friends={friends}
             onAddFriend={handleAddFriend}
-            onSelectParticipants={handleSelectParticipants}
+            onSelectParticipants={(names) => {
+              names.forEach(openPublicProfile); // allow quick view of selected people's public calendars
+              handleSelectParticipants(names);
+            }}
           />
+
           <SuggestionPanel suggestions={allSuggestions} onPick={handlePick} />
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <h3 className="font-semibold mb-2">How LinkUp works</h3>
-            <ul className="text-sm text-gray-600 list-disc pl-4 space-y-1">
-              <li>Connect your Google Calendar to see busy and free time.</li>
-              <li>Add friends to compare schedules and find overlaps.</li>
-              <li>Pick a suggested slot to send an invite for approval.</li>
-              <li>Events show as confirmed only after everyone accepts.</li>
-            </ul>
-          </div>
+          {viewProfile && (
+            <PublicProfile
+              profile={viewProfile}
+              onAddFriend={() => handleInviteFromDiscover({ name: viewProfile.name, status: viewProfile.bio, avatar: viewProfile.avatar })}
+            />
+          )}
+
+          <DiscoverPanel onInvite={handleInviteFromDiscover} />
         </aside>
       </main>
 

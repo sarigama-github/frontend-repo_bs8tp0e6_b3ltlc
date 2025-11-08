@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Sparkles, Clock, Users } from "lucide-react";
+import Timespan from "./Timespan";
 
 function SuggestionPanel({ suggestions = [], onPick }) {
   const grouped = useMemo(() => {
@@ -38,11 +39,9 @@ function SuggestionPanel({ suggestions = [], onPick }) {
                     <div className="font-medium text-violet-900">
                       {s.emoji} {s.title}
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-violet-700">
+                    <div className="flex items-center gap-1 text-xs text-violet-700 tabular-nums">
                       <Clock size={14} />
-                      {new Date(s.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      -
-                      {new Date(s.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      <Timespan start={s.start} end={s.end} />
                     </div>
                   </div>
                   <div className="mt-1 text-xs text-violet-800 flex items-center gap-1">

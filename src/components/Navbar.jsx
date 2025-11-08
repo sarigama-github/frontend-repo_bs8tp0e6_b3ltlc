@@ -1,14 +1,38 @@
-import { User, Calendar } from "lucide-react";
+import { User, Calendar, Stars, Users } from "lucide-react";
 
-function Navbar({ onConnect, user }) {
+function NavLink({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-xl text-sm transition-colors ${
+        active ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-100"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Navbar({ onConnect, user, route = "calendar", onNavigate }) {
   return (
     <nav className="sticky top-0 z-20 w-full bg-white/80 backdrop-blur border-b border-gray-100">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-violet-100 text-violet-600 grid place-items-center">
             <Calendar size={18} />
           </div>
           <span className="text-xl font-semibold tracking-tight">LinkUp</span>
+          <div className="hidden md:flex items-center gap-1 ml-2">
+            <NavLink active={route === "calendar"} onClick={() => onNavigate?.("calendar")}>
+              Calendar
+            </NavLink>
+            <NavLink active={route === "plan"} onClick={() => onNavigate?.("plan")}>
+              <span className="inline-flex items-center gap-1"><Stars size={14} /> Plan</span>
+            </NavLink>
+            <NavLink active={route === "discover"} onClick={() => onNavigate?.("discover")}>
+              <span className="inline-flex items-center gap-1"><Users size={14} /> Discover</span>
+            </NavLink>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {!user ? (
@@ -40,6 +64,12 @@ function Navbar({ onConnect, user }) {
             </div>
           )}
         </div>
+      </div>
+      {/* Mobile tabs */}
+      <div className="md:hidden px-4 pb-3 flex gap-2">
+        <NavLink active={route === "calendar"} onClick={() => onNavigate?.("calendar")}>Calendar</NavLink>
+        <NavLink active={route === "plan"} onClick={() => onNavigate?.("plan")}>Plan</NavLink>
+        <NavLink active={route === "discover"} onClick={() => onNavigate?.("discover")}>Discover</NavLink>
       </div>
     </nav>
   );

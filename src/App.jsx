@@ -3,6 +3,8 @@ import Navbar from "./components/Navbar";
 import CalendarView from "./components/CalendarView";
 import SuggestionPanel from "./components/SuggestionPanel";
 import CreateEventModal from "./components/CreateEventModal";
+import PeoplePanel from "./components/PeoplePanel";
+import ApprovalNotice from "./components/ApprovalNotice";
 
 function mockUser() {
   return {
@@ -12,8 +14,15 @@ function mockUser() {
   };
 }
 
-function generateMockData(weekStart) {
-  // Create busy blocks for the current user and suggestions for overlaps
+function mockFriends() {
+  return [
+    { id: "1", name: "Sam Lee", status: "Usually free evenings", avatar: "https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?q=80&w=200&auto=format&fit=crop" },
+    { id: "2", name: "Jamie Park", status: "Busy 9–5, weekends open", avatar: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?q=80&w=200&auto=format&fit=crop" },
+    { id: "3", name: "Taylor Chen", status: "Gym Tue/Thu nights", avatar: "https://images.unsplash.com/photo-1527980965255-7c294a1b9175?q=80&w=200&auto=format&fit=crop" },
+  ];
+}
+
+function generateMockData(weekStart, participants = ["Alex", "Taylor"]) {
   const days = Array.from({ length: 7 }, (_, i) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i));
 
   const busy = days.map((d) => {
@@ -27,13 +36,13 @@ function generateMockData(weekStart) {
 
   const suggested = days.map((d, i) => {
     const arr = [];
-    if (i % 2 === 0) arr.push(block(d, 10, 30, 11, 30, "Study Session 📚", "📚", ["Alex", "Sam"]))
-    if (i % 3 === 0) arr.push(block(d, 18, 0, 19, 0, "Scrim ⚽️", "⚽️", ["Team A", "Team B"]))
-    if (i % 4 === 0) arr.push(block(d, 20, 0, 21, 0, "Hangout 🍜", "🍜", ["Alex", "Jamie"]))
+    if (i % 2 === 0) arr.push(block(d, 10, 30, 11, 30, "Study Session 📚", "📚", participants))
+    if (i % 3 === 0) arr.push(block(d, 18, 0, 19, 0, "Scrim ⚽️", "⚽️", participants))
+    if (i % 4 === 0) arr.push(block(d, 20, 0, 21, 0, "Hangout 🍜", "🍜", participants))
     return arr;
   });
 
-  const confirmed = days.map((d, i) => (i === 1 ? [block(d, 17, 0, 18, 0, "Confirmed Meeting ✅", "✅")] : []));
+  const confirmed = days.map((d, i) => (i === 1 ? [block(d, 17, 0, 18, 0, "Confirmed Meeting ✅", "✅", participants)] : []));
 
   return { busy, suggested, confirmed };
 }
@@ -50,6 +59,8 @@ function App() {
   const [user, setUser] = useState(null);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(null);
+  const [friends] = useState(mockFriends());
+  const [participants, setParticipants] = useState(["Alex", "Taylor"]);
 
   const weekStart = useMemo(() => {
     const now = new Date();
@@ -58,12 +69,10 @@ function App() {
     return new Date(now.getFullYear(), now.getMonth(), diff);
   }, []);
 
-  const data = useMemo(() => generateMockData(weekStart), [weekStart]);
-
+  const data = useMemo(() => generateMockData(weekStart, participants), [weekStart, participants]);
   const allSuggestions = useMemo(() => data.suggested.flat(), [data]);
 
   const handleConnect = () => {
-    // Placeholder for Google OAuth flow - UI demo only in this MVP
     setUser(mockUser());
   };
 
@@ -73,9 +82,16 @@ function App() {
   };
 
   const handleConfirm = (d) => {
-    // In full app, call backend to create Google Calendar events for participants
     setOpen(false);
-    alert(`Event created: ${d.title} at ${new Date(d.start).toLocaleString()}`);
+    alert(`Event request sent: ${d.title} at ${new Date(d.start).toLocaleString()} — awaiting all approvals`);
+  };
+
+  const handleAddFriend = () => {
+    alert("Friend discovery coming soon — search by email/handle or import contacts.");
+  };
+
+  const handleSelectParticipants = (names) => {
+    setParticipants(["Alex", ...names.filter((n) => n !== "Alex")]);
   };
 
   return (
@@ -93,19 +109,29 @@ function App() {
               Week of {weekStart.toLocaleDateString()}
             </div>
           </header>
+
           <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
             <CalendarView weekStart={weekStart} data={data} />
           </div>
+
+          <ApprovalNotice />
         </section>
+
         <aside className="lg:col-span-1 space-y-4">
+          <PeoplePanel
+            friends={friends}
+            onAddFriend={handleAddFriend}
+            onSelectParticipants={handleSelectParticipants}
+          />
           <SuggestionPanel suggestions={allSuggestions} onPick={handlePick} />
+
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             <h3 className="font-semibold mb-2">How LinkUp works</h3>
             <ul className="text-sm text-gray-600 list-disc pl-4 space-y-1">
               <li>Connect your Google Calendar to see busy and free time.</li>
-              <li>Select friends, classmates, or teammates to compare schedules.</li>
-              <li>Get smart suggestions tailored to study, sports, or hangouts.</li>
-              <li>Click a slot to create a shared event for everyone.</li>
+              <li>Add friends to compare schedules and find overlaps.</li>
+              <li>Pick a suggested slot to send an invite for approval.</li>
+              <li>Events show as confirmed only after everyone accepts.</li>
             </ul>
           </div>
         </aside>
